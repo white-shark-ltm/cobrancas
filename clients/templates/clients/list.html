@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block title %}Clientes — ElevenTech{% endblock %}
+
+{% block page_title %}Clientes{% endblock %}
+
+{% block content %}
+
+  {# ===== BARRA DE AÇÕES ===== #}
+  <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+
+    {# Busca #}
+    <form method="get" action="" class="flex-1 max-w-sm">
+      <div class="relative">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg class="w-4 h-4 text-slate-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"/>
+          </svg>
+        </span>
+        <input type="text"
+               name="q"
+               value="{{ request.GET.q|default:'' }}"
+               placeholder="Buscar clientes..."
+               class="w-full pl-10 pr-4 py-2.5 text-sm
+                      text-slate-800 dark:text-zinc-100
+                      bg-white dark:bg-zinc-900
+                      border border-slate-300 dark:border-zinc-700
+                      rounded-lg
+                      placeholder:text-slate-400 dark:placeholder:text-zinc-500
+                      outline-none
+                      focus:border-blue-500 dark:focus:border-blue-500
+                      focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
+                      transition-colors">
+      </div>
+    </form>
+
+    {# Botão novo cliente #}
+    <a href="{% url 'clients:create' %}"
+       class="inline-flex items-center gap-2 text-white text-sm font-semibold
+              px-4 py-2.5 rounded-lg transition-colors duration-150
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              dark:focus:ring-offset-zinc-950 whitespace-nowrap"
+       style="background: linear-gradient(135deg, #1460f0, #06b8f6);">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Novo Cliente
+    </a>
+
+  </div>
+
+  {# Tag de filtro ativo #}
+  {% if request.GET.q %}
+    <div class="flex items-center gap-2 mb-4">
+      <span class="text-sm text-slate-500 dark:text-zinc-400">Buscando por:</span>
+      <span class="inline-flex items-center gap-1.5
+                   bg-blue-50 dark:bg-blue-500/10
+                   border border-blue-200 dark:border-blue-500/30
+                   text-blue-700 dark:text-blue-400
+                   text-sm font-medium px-3 py-1 rounded-full">
+        "{{ request.GET.q }}"
+        <a href="{% url 'clients:list' %}" class="hover:opacity-70 transition-opacity ml-0.5" aria-label="Limpar busca">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </a>
+      </span>
+    </div>
+  {% endif %}
+
+  {# ===== ESTADO VAZIO ===== #}
+  {% if not clients %}
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800
+                px-8 py-16 text-center">
+      <div class="inline-flex items-center justify-center w-16 h-16
+                  bg-slate-100 dark:bg-zinc-800 rounded-full mb-4">
+        <svg class="w-8 h-8 text-slate-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+      </div>
+      {% if request.GET.q %}
+        <h3 class="text-base font-semibold text-slate-700 dark:text-zinc-200 mb-1">Nenhum cliente encontrado</h3>
+        <p class="text-sm text-slate-500 dark:text-zinc-400 mb-6">
+          Não encontramos nenhum cliente para "<strong>{{ request.GET.q }}</strong>".
+        </p>
+        <a href="{% url 'clients:list' %}"
+           class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:opacity-80 transition-opacity">
+          Limpar busca
+        </a>
+      {% else %}
+        <h3 class="text-base font-semibold text-slate-700 dark:text-zinc-200 mb-1">Nenhum cliente cadastrado</h3>
+        <p class="text-sm text-slate-500 dark:text-zinc-400 mb-6">
+          Comece adicionando seu primeiro cliente para gerenciar projetos e faturas.
+        </p>
+        <a href="{% url 'clients:create' %}"
+           class="inline-flex items-center gap-2 text-white text-sm font-semibold
+                  px-5 py-2.5 rounded-lg transition-opacity hover:opacity-90"
+           style="background: linear-gradient(135deg, #1460f0, #06b8f6);">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Adicionar primeiro cliente
+        </a>
+      {% endif %}
+    </div>
+
+  {% else %}
+
+    {# ===== TABELA DE CLIENTES ===== #}
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+
+      {# Cabeçalho com contador #}
+      <div class="px-6 py-3.5 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
+        <span class="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
+          {{ clients|length }} cliente{% if clients|length != 1 %}s{% endif %}
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-zinc-800/60 border-b border-slate-100 dark:border-zinc-800">
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Nome</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Email</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Telefone</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Status</th>
+              <th class="text-right text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-zinc-800">
+
+            {% for client in clients %}
+              <tr class="hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors
+                         {% if not client.active %}opacity-50{% endif %}">
+
+                {# Nome #}
+                <td class="px-6 py-4">
+                  <a href="{% url 'clients:detail' client.pk %}"
+                     class="font-medium text-slate-800 dark:text-zinc-100
+                            hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {{ client.name }}
+                  </a>
+                </td>
+
+                {# Email #}
+                <td class="px-6 py-4 text-slate-500 dark:text-zinc-400">
+                  {{ client.email|default:"—" }}
+                </td>
+
+                {# Telefone #}
+                <td class="px-6 py-4 text-slate-500 dark:text-zinc-400">
+                  {{ client.phone|default:"—" }}
+                </td>
+
+                {# Status #}
+                <td class="px-6 py-4">
+                  {% if client.active %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-emerald-50 dark:bg-emerald-500/10
+                                 text-emerald-700 dark:text-emerald-400
+                                 border border-emerald-200 dark:border-emerald-500/30
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 bg-emerald-500 dark:bg-emerald-400 rounded-full"></span>
+                      Ativo
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-slate-100 dark:bg-zinc-800
+                                 text-slate-500 dark:text-zinc-500
+                                 border border-slate-200 dark:border-zinc-700
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-zinc-600 rounded-full"></span>
+                      Inativo
+                    </span>
+                  {% endif %}
+                </td>
+
+                {# Ações #}
+                <td class="px-6 py-4">
+                  <div class="flex items-center justify-end gap-1">
+
+                    {# Ver detalhe #}
+                    <a href="{% url 'clients:detail' client.pk %}"
+                       title="Ver detalhes"
+                       class="p-1.5 text-slate-400 dark:text-zinc-500
+                              hover:text-blue-600 dark:hover:text-blue-400
+                              hover:bg-blue-50 dark:hover:bg-blue-500/10
+                              rounded-md transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                    </a>
+
+                    {# Editar #}
+                    <a href="{% url 'clients:update' client.pk %}"
+                       title="Editar"
+                       class="p-1.5 text-slate-400 dark:text-zinc-500
+                              hover:text-amber-600 dark:hover:text-amber-400
+                              hover:bg-amber-50 dark:hover:bg-amber-500/10
+                              rounded-md transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
+                    </a>
+
+                    {# Desativar (apenas se ativo) #}
+                    {% if client.active %}
+                      <form method="post"
+                            action="{% url 'clients:deactivate' client.pk %}"
+                            class="inline"
+                            onsubmit="return confirm('Desativar este cliente? Projetos e faturas não serão afetados.')">
+                        {% csrf_token %}
+                        <button type="submit"
+                                title="Desativar cliente"
+                                class="p-1.5 text-slate-400 dark:text-zinc-500
+                                       hover:text-red-600 dark:hover:text-red-400
+                                       hover:bg-red-50 dark:hover:bg-red-500/10
+                                       rounded-md transition-colors">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                          </svg>
+                        </button>
+                      </form>
+                    {% endif %}
+
+                  </div>
+                </td>
+
+              </tr>
+            {% endfor %}
+
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  {% endif %}
+
+{% endblock %}

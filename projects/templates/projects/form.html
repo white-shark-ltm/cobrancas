@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {% if object %}Editar Projeto{% else %}Novo Projeto{% endif %} — ElevenTech
+{% endblock %}
+
+{% block page_title %}
+  {% if object %}Editar Projeto{% else %}Novo Projeto{% endif %}
+{% endblock %}
+
+{% block breadcrumb %}
+  <nav class="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5" aria-label="Breadcrumb">
+    <a href="{% url 'projects:list' %}" class="hover:text-slate-600 dark:hover:text-zinc-200 transition-colors">
+      Projetos
+    </a>
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+    <span class="text-slate-500 dark:text-zinc-500">
+      {% if object %}{{ object.name }}{% else %}Novo{% endif %}
+    </span>
+  </nav>
+{% endblock %}
+
+{% block content %}
+
+  <div class="max-w-2xl mx-auto">
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+
+      {# Cabeçalho do card #}
+      <div class="px-6 py-5 border-b border-slate-100 dark:border-zinc-800">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0
+                      bg-blue-50 dark:bg-blue-500/10">
+            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold text-slate-800 dark:text-zinc-100">
+              {% if object %}Editar dados do projeto{% else %}Cadastrar novo projeto{% endif %}
+            </h2>
+            <p class="text-sm text-slate-500 dark:text-zinc-400">
+              {% if object %}Atualize as informações abaixo.{% else %}Preencha as informações do projeto.{% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="px-6 py-6 space-y-5">
+
+          {# Erros gerais do formulário (non_field_errors) #}
+          {% if form.non_field_errors %}
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700
+                        rounded-lg px-4 py-3" role="alert">
+              {% for error in form.non_field_errors %}
+                <p class="text-sm text-red-700 dark:text-red-400 flex items-start gap-2">
+                  <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  {{ error }}
+                </p>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {# ── Campo: Cliente ── #}
+          <div>
+            <label for="{{ form.client.id_for_label }}"
+                   class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">
+              {{ form.client.label }}
+              {% if form.client.field.required %}
+                <span class="text-red-500 ml-0.5" aria-hidden="true">*</span>
+              {% endif %}
+            </label>
+            {{ form.client }}
+            {% if form.client.errors %}
+              {% for error in form.client.errors %}
+                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  {{ error }}
+                </p>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          {# ── Campo: Nome do Projeto ── #}
+          <div>
+            <label for="{{ form.name.id_for_label }}"
+                   class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">
+              {{ form.name.label }}
+              {% if form.name.field.required %}
+                <span class="text-red-500 ml-0.5" aria-hidden="true">*</span>
+              {% endif %}
+            </label>
+            <input type="text"
+                   id="{{ form.name.id_for_label }}"
+                   name="{{ form.name.html_name }}"
+                   value="{{ form.name.value|default:'' }}"
+                   placeholder="Nome do projeto"
+                   {% if form.name.field.required %}required{% endif %}
+                   class="w-full px-3.5 py-2.5 text-sm
+                          text-slate-800 dark:text-zinc-100
+                          bg-white dark:bg-zinc-900
+                          border rounded-lg outline-none transition-colors
+                          placeholder:text-slate-400 dark:placeholder:text-zinc-500
+                          {% if form.name.errors %}
+                            border-red-400 dark:border-red-500
+                            focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20
+                          {% else %}
+                            border-slate-300 dark:border-zinc-700
+                            focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
+                          {% endif %}">
+            {% if form.name.errors %}
+              {% for error in form.name.errors %}
+                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  {{ error }}
+                </p>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          {# ── Campo: Descrição ── #}
+          <div>
+            <label for="{{ form.description.id_for_label }}"
+                   class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">
+              {{ form.description.label }}
+            </label>
+            <textarea id="{{ form.description.id_for_label }}"
+                      name="{{ form.description.html_name }}"
+                      rows="4"
+                      placeholder="Descreva o escopo, objetivos e entregas do projeto..."
+                      class="w-full px-3.5 py-2.5 text-sm
+                             text-slate-800 dark:text-zinc-100
+                             bg-white dark:bg-zinc-900
+                             border rounded-lg outline-none transition-colors resize-y
+                             placeholder:text-slate-400 dark:placeholder:text-zinc-500
+                             {% if form.description.errors %}
+                               border-red-400 dark:border-red-500
+                               focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20
+                             {% else %}
+                               border-slate-300 dark:border-zinc-700
+                               focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
+                             {% endif %}">{{ form.description.value|default:'' }}</textarea>
+            {% if form.description.errors %}
+              {% for error in form.description.errors %}
+                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  {{ error }}
+                </p>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          {# ── Campo: Status ── #}
+          <div>
+            <label for="{{ form.status.id_for_label }}"
+                   class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">
+              {{ form.status.label }}
+              {% if form.status.field.required %}
+                <span class="text-red-500 ml-0.5" aria-hidden="true">*</span>
+              {% endif %}
+            </label>
+            {{ form.status }}
+            {% if form.status.errors %}
+              {% for error in form.status.errors %}
+                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  {{ error }}
+                </p>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          {# ── Campos: Valor + Tipo de Contrato (grid 2 colunas) ── #}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {# Valor #}
+            <div>
+              <label for="{{ form.rate.id_for_label }}"
+                     class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">
+                Valor
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none
+                             text-slate-400 dark:text-zinc-500 text-sm">R$</span>
+                <input type="number"
+                       id="{{ form.rate.id_for_label }}"
+                       name="{{ form.rate.html_name }}"
+                       value="{{ form.rate.value|default:'' }}"
+                       step="0.01"
+                       min="0"
+                       placeholder="0,00"
+                       class="w-full pl-9 pr-3.5 py-2.5 text-sm
+                              text-slate-800 dark:text-zinc-100
+                              bg-white dark:bg-zinc-900
+                              border rounded-lg outline-none transition-colors
+                              placeholder:text-slate-400 dark:placeholder:text-zinc-500
+                              {% if form.rate.errors %}
+                                border-red-400 dark:border-red-500
+                                focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20
+                              {% else %}
+                                border-slate-300 dark:border-zinc-700
+                                focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
+                              {% endif %}">
+              </div>
+              {% if form.rate.errors %}
+                {% for error in form.rate.errors %}
+                  <p class="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ error }}
+                  </p>
+                {% endfor %}
+              {% endif %}
+            </div>
+
+            {# Tipo de contrato #}
+            <div>
+              <label for="{{ form.rate_type.id_for_label }}"
+                     class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">
+                {{ form.rate_type.label }}
+                {% if form.rate_type.field.required %}
+                  <span class="text-red-500 ml-0.5" aria-hidden="true">*</span>
+                {% endif %}
+              </label>
+              {{ form.rate_type }}
+              {% if form.rate_type.errors %}
+                {% for error in form.rate_type.errors %}
+                  <p class="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ error }}
+                  </p>
+                {% endfor %}
+              {% endif %}
+            </div>
+
+          </div>
+
+          {# ── Campos: Data de Início + Prazo (grid 2 colunas) ── #}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {# Data de início #}
+            <div>
+              <label for="{{ form.started_at.id_for_label }}"
+                     class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">
+                Início
+              </label>
+              <input type="date"
+                     id="{{ form.started_at.id_for_label }}"
+                     name="{{ form.started_at.html_name }}"
+                     value="{{ form.started_at.value|default:'' }}"
+                     class="w-full px-3.5 py-2.5 text-sm
+                            text-slate-800 dark:text-zinc-100
+                            bg-white dark:bg-zinc-900
+                            border rounded-lg outline-none transition-colors
+                            dark:[color-scheme:dark]
+                            {% if form.started_at.errors %}
+                              border-red-400 dark:border-red-500
+                              focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20
+                            {% else %}
+                              border-slate-300 dark:border-zinc-700
+                              focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
+                            {% endif %}">
+              {% if form.started_at.errors %}
+                {% for error in form.started_at.errors %}
+                  <p class="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ error }}
+                  </p>
+                {% endfor %}
+              {% endif %}
+            </div>
+
+            {# Prazo (deadline) #}
+            <div>
+              <label for="{{ form.deadline.id_for_label }}"
+                     class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">
+                Prazo
+              </label>
+              <input type="date"
+                     id="{{ form.deadline.id_for_label }}"
+                     name="{{ form.deadline.html_name }}"
+                     value="{{ form.deadline.value|default:'' }}"
+                     class="w-full px-3.5 py-2.5 text-sm
+                            text-slate-800 dark:text-zinc-100
+                            bg-white dark:bg-zinc-900
+                            border rounded-lg outline-none transition-colors
+                            dark:[color-scheme:dark]
+                            {% if form.deadline.errors %}
+                              border-red-400 dark:border-red-500
+                              focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20
+                            {% else %}
+                              border-slate-300 dark:border-zinc-700
+                              focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
+                            {% endif %}">
+              {% if form.deadline.errors %}
+                {% for error in form.deadline.errors %}
+                  <p class="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ error }}
+                  </p>
+                {% endfor %}
+              {% endif %}
+            </div>
+
+          </div>
+
+        </div>
+
+        {# Rodapé do card — botões de ação #}
+        <div class="px-6 py-4 bg-slate-50 dark:bg-zinc-800/50
+                    border-t border-slate-100 dark:border-zinc-800
+                    flex items-center justify-end gap-3">
+
+          <a href="{% url 'projects:list' %}"
+             class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium
+                    text-slate-600 dark:text-zinc-300
+                    bg-white dark:bg-zinc-900
+                    border border-slate-300 dark:border-zinc-700
+                    rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800
+                    hover:border-slate-400 dark:hover:border-zinc-600
+                    transition-colors duration-150
+                    focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2
+                    dark:focus:ring-offset-zinc-900">
+            Cancelar
+          </a>
+
+          <button type="submit"
+                  class="inline-flex items-center gap-2 text-white text-sm font-semibold
+                         px-5 py-2.5 rounded-lg transition-opacity hover:opacity-90 duration-150
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                         dark:focus:ring-offset-zinc-900"
+                  style="background: linear-gradient(135deg, #1460f0, #06b8f6);">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Salvar
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+{% endblock %}

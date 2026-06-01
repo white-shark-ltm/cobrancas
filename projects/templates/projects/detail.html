@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.name }} — ElevenTech{% endblock %}
+
+{% block page_title %}{{ project.name }}{% endblock %}
+
+{% block breadcrumb %}
+  <nav class="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5" aria-label="Breadcrumb">
+    <a href="{% url 'projects:list' %}" class="hover:text-slate-600 dark:hover:text-zinc-200 transition-colors">
+      Projetos
+    </a>
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+    <span class="text-slate-500 dark:text-zinc-500 truncate max-w-[200px]">{{ project.name }}</span>
+  </nav>
+{% endblock %}
+
+{% block header_actions %}
+  {# Botões de ação no header #}
+  <div class="flex items-center gap-2">
+
+    {# Nova Fatura — billing ainda não implementado #}
+    <a href="#"
+       title="Emitir nova fatura (em breve)"
+       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium
+              text-slate-600 dark:text-zinc-300
+              bg-white dark:bg-zinc-900
+              border border-slate-300 dark:border-zinc-700
+              rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800
+              transition-colors duration-150
+              focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414
+             a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Nova Fatura
+    </a>
+
+    {# Editar projeto #}
+    <a href="{% url 'projects:update' project.pk %}"
+       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium
+              text-slate-600 dark:text-zinc-300
+              bg-white dark:bg-zinc-900
+              border border-slate-300 dark:border-zinc-700
+              rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800
+              transition-colors duration-150
+              focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+             m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+      </svg>
+      Editar
+    </a>
+
+    {# Arquivar — apenas se não cancelado #}
+    {% if project.status != 'cancelled' %}
+      <form method="post"
+            action="{% url 'projects:archive' project.pk %}"
+            class="inline"
+            onsubmit="return confirm('Arquivar o projeto \'{{ project.name }}\'?\nEsta ação não pode ser desfeita.')">
+        {% csrf_token %}
+        <button type="submit"
+                class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium
+                       text-red-600 dark:text-red-400
+                       bg-white dark:bg-zinc-900
+                       border border-red-300 dark:border-red-500/50
+                       rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10
+                       transition-colors duration-150
+                       focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8
+                 a2 2 0 002-2l1-12M10 12l2 2 2-2"/>
+          </svg>
+          Arquivar
+        </button>
+      </form>
+    {% endif %}
+
+  </div>
+{% endblock %}
+
+{% block content %}
+
+  {# ===== ALERTA DE ATRASO ===== #}
+  {% if project.is_overdue %}
+    <div class="flex items-start gap-3 px-4 py-3 mb-5 rounded-lg
+                bg-amber-50 dark:bg-amber-500/10
+                border border-amber-200 dark:border-amber-500/30"
+         role="alert">
+      <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+      <div>
+        <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">
+          Este projeto está com prazo vencido.
+        </p>
+        <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+          O prazo era {{ project.deadline|date:"d/m/Y" }}.
+          Considere atualizar as datas ou o status do projeto.
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ===== HEADER DO PROJETO ===== #}
+  <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800
+              overflow-hidden mb-5">
+
+    <div class="px-6 py-5">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+
+        {# Informações principais #}
+        <div class="flex-1 min-w-0">
+
+          {# Badge de status + nome #}
+          <div class="flex flex-wrap items-center gap-3 mb-2">
+
+            {# Badge de status #}
+            {% if project.status == 'draft' %}
+              <span class="inline-flex items-center gap-1.5
+                           bg-zinc-100 dark:bg-zinc-800
+                           text-zinc-600 dark:text-zinc-400
+                           border border-zinc-200 dark:border-zinc-700
+                           text-xs font-semibold px-2.5 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500"></span>
+                {{ project.get_status_display }}
+              </span>
+            {% elif project.status == 'active' %}
+              <span class="inline-flex items-center gap-1.5
+                           bg-emerald-50 dark:bg-emerald-500/10
+                           text-emerald-700 dark:text-emerald-400
+                           border border-emerald-200 dark:border-emerald-500/30
+                           text-xs font-semibold px-2.5 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
+                {{ project.get_status_display }}
+              </span>
+            {% elif project.status == 'paused' %}
+              <span class="inline-flex items-center gap-1.5
+                           bg-amber-50 dark:bg-amber-500/10
+                           text-amber-700 dark:text-amber-400
+                           border border-amber-200 dark:border-amber-500/30
+                           text-xs font-semibold px-2.5 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400"></span>
+                {{ project.get_status_display }}
+              </span>
+            {% elif project.status == 'completed' %}
+              <span class="inline-flex items-center gap-1.5
+                           bg-blue-50 dark:bg-blue-500/10
+                           text-blue-700 dark:text-blue-400
+                           border border-blue-200 dark:border-blue-500/30
+                           text-xs font-semibold px-2.5 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400"></span>
+                {{ project.get_status_display }}
+              </span>
+            {% elif project.status == 'cancelled' %}
+              <span class="inline-flex items-center gap-1.5
+                           bg-red-50 dark:bg-red-500/10
+                           text-red-600 dark:text-red-400
+                           border border-red-200 dark:border-red-500/30
+                           text-xs font-semibold px-2.5 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400"></span>
+                {{ project.get_status_display }}
+              </span>
+            {% endif %}
+
+          </div>
+
+          {# Nome do projeto #}
+          <h2 class="text-xl font-bold text-slate-800 dark:text-zinc-100 mb-1">
+            {{ project.name }}
+          </h2>
+
+          {# Cliente #}
+          {% if project.client %}
+            <p class="text-sm text-slate-500 dark:text-zinc-400 mb-3">
+              <a href="{% url 'clients:detail' project.client.pk %}"
+                 class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
+                {{ project.client.name }}
+              </a>
+            </p>
+          {% endif %}
+
+          {# Descrição #}
+          {% if project.description %}
+            <p class="text-sm text-slate-600 dark:text-zinc-300 leading-relaxed max-w-prose">
+              {{ project.description }}
+            </p>
+          {% endif %}
+
+        </div>
+
+        {# Painel lateral: valor + datas #}
+        <div class="flex-shrink-0 sm:text-right space-y-3">
+
+          {# Tipo de contrato + valor #}
+          {% if project.rate %}
+            <div>
+              <p class="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
+                {{ project.get_rate_type_display }}
+              </p>
+              <p class="text-2xl font-bold text-slate-800 dark:text-zinc-100">
+                R$ {{ project.rate|floatformat:2 }}
+              </p>
+            </div>
+          {% endif %}
+
+          {# Datas #}
+          <div class="space-y-1">
+            {% if project.started_at %}
+              <div class="flex items-center gap-1.5 sm:justify-end">
+                <svg class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 flex-shrink-0"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-xs text-slate-500 dark:text-zinc-400">
+                  Início: <span class="text-slate-700 dark:text-zinc-300 font-medium">{{ project.started_at|date:"d/m/Y" }}</span>
+                </span>
+              </div>
+            {% endif %}
+
+            {% if project.deadline %}
+              <div class="flex items-center gap-1.5 sm:justify-end">
+                {% if project.is_overdue %}
+                  <svg class="w-3.5 h-3.5 text-red-500 dark:text-red-400 flex-shrink-0"
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  </svg>
+                  <span class="text-xs text-red-600 dark:text-red-400 font-semibold">
+                    Prazo: {{ project.deadline|date:"d/m/Y" }}
+                  </span>
+                {% else %}
+                  <svg class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 flex-shrink-0"
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-xs text-slate-500 dark:text-zinc-400">
+                    Prazo: <span class="text-slate-700 dark:text-zinc-300 font-medium">{{ project.deadline|date:"d/m/Y" }}</span>
+                  </span>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  {# ===== CARDS FINANCEIROS ===== #}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+
+    {# Total Faturado #}
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 px-5 py-4">
+      <p class="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
+        Total Faturado
+      </p>
+      <p class="text-2xl font-bold text-slate-800 dark:text-zinc-100">
+        R$ {{ total_invoiced|floatformat:2 }}
+      </p>
+    </div>
+
+    {# Total Recebido #}
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 px-5 py-4">
+      <p class="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
+        Total Recebido
+      </p>
+      <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+        R$ {{ total_paid|floatformat:2 }}
+      </p>
+    </div>
+
+    {# Total Pendente — amarelo se > 0, verde se quitado #}
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 px-5 py-4">
+      <p class="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
+        Total Pendente
+      </p>
+      {% if total_pending %}
+        <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">
+          R$ {{ total_pending|floatformat:2 }}
+        </p>
+      {% else %}
+        <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+          R$ 0,00
+        </p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  {# ===== SEÇÃO DE FATURAS ===== #}
+  <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+
+    {# Cabeçalho da seção #}
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-zinc-800
+                flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-slate-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414
+               a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <span class="text-sm font-semibold text-slate-700 dark:text-zinc-200">Faturas</span>
+        {% if invoices %}
+          <span class="text-xs font-semibold text-slate-400 dark:text-zinc-500
+                       bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-full">
+            {{ invoices|length }}
+          </span>
+        {% endif %}
+      </div>
+
+      {# Botão emitir fatura — TODO: linkar quando billing for implementado #}
+      <a href="#"
+         title="Emitir nova fatura (em breve)"
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold
+                text-white rounded-lg transition-opacity hover:opacity-90"
+         style="background: linear-gradient(135deg, #1460f0, #06b8f6);">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Emitir Fatura
+      </a>
+    </div>
+
+    {# Estado vazio de faturas #}
+    {% if not invoices %}
+      <div class="px-8 py-12 text-center">
+        <div class="inline-flex items-center justify-center w-14 h-14
+                    bg-slate-100 dark:bg-zinc-800 rounded-full mb-3">
+          <svg class="w-7 h-7 text-slate-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414
+                 a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-700 dark:text-zinc-200 mb-1">
+          Nenhuma fatura emitida
+        </h3>
+        <p class="text-sm text-slate-500 dark:text-zinc-400 mb-4">
+          Este projeto ainda não possui faturas. Emita a primeira para cobrar seu cliente.
+        </p>
+        {# TODO: substituir href="#" pela URL de billing:create quando o módulo for implementado #}
+        <a href="#"
+           class="inline-flex items-center gap-2 text-white text-sm font-semibold
+                  px-4 py-2 rounded-lg transition-opacity hover:opacity-90"
+           style="background: linear-gradient(135deg, #1460f0, #06b8f6);">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Emitir Fatura
+        </a>
+      </div>
+
+    {% else %}
+
+      {# Tabela de faturas #}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-zinc-800/60 border-b border-slate-100 dark:border-zinc-800">
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Número</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Emissão</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Vencimento</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Status</th>
+              <th class="text-right text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Total</th>
+              <th class="text-right text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-zinc-800">
+
+            {% for invoice in invoices %}
+              <tr class="hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors">
+
+                {# Número da fatura #}
+                <td class="px-6 py-4">
+                  <span class="font-medium text-slate-800 dark:text-zinc-100">
+                    {{ invoice.number|default:"—" }}
+                  </span>
+                </td>
+
+                {# Data de emissão #}
+                <td class="px-6 py-4 text-slate-500 dark:text-zinc-400">
+                  {% if invoice.issued_at %}
+                    {{ invoice.issued_at|date:"d/m/Y" }}
+                  {% else %}
+                    <span class="text-slate-300 dark:text-zinc-600">—</span>
+                  {% endif %}
+                </td>
+
+                {# Data de vencimento #}
+                <td class="px-6 py-4 text-slate-500 dark:text-zinc-400">
+                  {% if invoice.due_date %}
+                    {{ invoice.due_date|date:"d/m/Y" }}
+                  {% else %}
+                    <span class="text-slate-300 dark:text-zinc-600">—</span>
+                  {% endif %}
+                </td>
+
+                {# Badge de status da fatura #}
+                <td class="px-6 py-4">
+                  {% if invoice.status == 'draft' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-zinc-100 dark:bg-zinc-800
+                                 text-zinc-600 dark:text-zinc-400
+                                 border border-zinc-200 dark:border-zinc-700
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500"></span>
+                      Rascunho
+                    </span>
+                  {% elif invoice.status == 'sent' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-blue-50 dark:bg-blue-500/10
+                                 text-blue-700 dark:text-blue-400
+                                 border border-blue-200 dark:border-blue-500/30
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400"></span>
+                      Enviada
+                    </span>
+                  {% elif invoice.status == 'paid' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-emerald-50 dark:bg-emerald-500/10
+                                 text-emerald-700 dark:text-emerald-400
+                                 border border-emerald-200 dark:border-emerald-500/30
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
+                      Paga
+                    </span>
+                  {% elif invoice.status == 'overdue' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-red-50 dark:bg-red-500/10
+                                 text-red-600 dark:text-red-400
+                                 border border-red-200 dark:border-red-500/30
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400"></span>
+                      Vencida
+                    </span>
+                  {% elif invoice.status == 'cancelled' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-slate-100 dark:bg-zinc-800/60
+                                 text-slate-400 dark:text-zinc-600
+                                 border border-slate-200 dark:border-zinc-700
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-zinc-600"></span>
+                      Cancelada
+                    </span>
+                  {% else %}
+                    <span class="text-slate-500 dark:text-zinc-400 text-xs">
+                      {{ invoice.get_status_display|default:invoice.status }}
+                    </span>
+                  {% endif %}
+                </td>
+
+                {# Total #}
+                <td class="px-6 py-4 text-right">
+                  {% if invoice.total %}
+                    <span class="font-semibold text-slate-800 dark:text-zinc-100">
+                      R$ {{ invoice.total|floatformat:2 }}
+                    </span>
+                  {% else %}
+                    <span class="text-slate-300 dark:text-zinc-600">—</span>
+                  {% endif %}
+                </td>
+
+                {# Ações — TODO: substituir href="#" por {% url 'billing:detail' invoice.pk %} quando o módulo for implementado #}
+                <td class="px-6 py-4">
+                  <div class="flex items-center justify-end gap-1">
+                    <a href="#"
+                       title="Ver fatura"
+                       class="p-1.5 text-slate-400 dark:text-zinc-500
+                              hover:text-blue-600 dark:hover:text-blue-400
+                              hover:bg-blue-50 dark:hover:bg-blue-500/10
+                              rounded-md transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7
+                             -1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                    </a>
+                  </div>
+                </td>
+
+              </tr>
+            {% endfor %}
+
+          </tbody>
+        </table>
+      </div>
+
+    {% endif %}
+
+  </div>
+
+{% endblock %}

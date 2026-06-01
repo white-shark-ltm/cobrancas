@@ -1,0 +1,525 @@
+{% extends 'base.html' %}
+
+{% block title %}Projetos — ElevenTech{% endblock %}
+
+{% block page_title %}Projetos{% endblock %}
+
+{% block content %}
+
+  {# ===== PILLS DE FILTRO POR STATUS ===== #}
+  {#
+    Cada pill constrói a URL preservando ?q= e ?client= ativos.
+    O pill ativo corresponde a request.GET.status (ou "Todos" se vazio).
+  #}
+  <div class="flex items-center gap-2 flex-wrap mb-5">
+
+    {# Pill "Todos" — ativo quando não há filtro de status #}
+    <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.client %}client={{ request.GET.client }}{% endif %}"
+       class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold
+              transition-colors duration-150
+              {% if not request.GET.status %}
+                text-white
+              {% else %}
+                text-slate-600 dark:text-zinc-400
+                bg-slate-100 dark:bg-zinc-800
+                hover:bg-slate-200 dark:hover:bg-zinc-700
+              {% endif %}"
+       {% if not request.GET.status %}style="background: #1460f0;"{% endif %}>
+      Todos
+    </a>
+
+    {% for value, label in status_choices %}
+      <a href="?status={{ value }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.client %}&client={{ request.GET.client }}{% endif %}"
+         class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold
+                transition-colors duration-150
+                {% if request.GET.status == value %}
+                  text-white
+                {% else %}
+                  text-slate-600 dark:text-zinc-400
+                  bg-slate-100 dark:bg-zinc-800
+                  hover:bg-slate-200 dark:hover:bg-zinc-700
+                {% endif %}"
+         {% if request.GET.status == value %}style="background: #1460f0;"{% endif %}>
+        {{ label }}
+      </a>
+    {% endfor %}
+
+  </div>
+
+  {# ===== BARRA DE FILTROS E AÇÕES ===== #}
+  <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+
+    {# Form de busca textual + select de cliente #}
+    <form method="get" action="" class="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+
+      {# Preserva filtro de status ao submeter busca #}
+      {% if request.GET.status %}
+        <input type="hidden" name="status" value="{{ request.GET.status }}">
+      {% endif %}
+
+      {# Campo de busca #}
+      <div class="relative flex-1 max-w-sm">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg class="w-4 h-4 text-slate-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"/>
+          </svg>
+        </span>
+        <input type="text"
+               name="q"
+               value="{{ request.GET.q|default:'' }}"
+               placeholder="Buscar projetos..."
+               class="w-full pl-10 pr-4 py-2.5 text-sm
+                      text-slate-800 dark:text-zinc-100
+                      bg-white dark:bg-zinc-900
+                      border border-slate-300 dark:border-zinc-700
+                      rounded-lg
+                      placeholder:text-slate-400 dark:placeholder:text-zinc-500
+                      outline-none
+                      focus:border-blue-500 dark:focus:border-blue-500
+                      focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
+                      transition-colors">
+      </div>
+
+      {# Select de cliente — auto-submit ao mudar #}
+      <select name="client"
+              onchange="this.form.submit()"
+              class="pl-3.5 pr-10 py-2.5 text-sm
+                     text-slate-800 dark:text-zinc-100
+                     bg-white dark:bg-zinc-900
+                     border border-slate-300 dark:border-zinc-700
+                     rounded-lg appearance-none outline-none
+                     focus:border-blue-500 dark:focus:border-blue-500
+                     focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
+                     transition-colors cursor-pointer
+                     bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E')]
+                     bg-[position:right_0.75rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat">
+        <option value="">Todos os clientes</option>
+        {% for client in clients %}
+          <option value="{{ client.pk }}"
+                  {% if request.GET.client == client.pk|stringformat:"s" %}selected{% endif %}>
+            {{ client.name }}
+          </option>
+        {% endfor %}
+      </select>
+
+      {# Botão submeter (acessibilidade e fallback sem JS) #}
+      <button type="submit"
+              class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium
+                     text-slate-600 dark:text-zinc-300
+                     bg-white dark:bg-zinc-900
+                     border border-slate-300 dark:border-zinc-700
+                     rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800
+                     transition-colors duration-150
+                     focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2
+                     sm:hidden">
+        Filtrar
+      </button>
+
+    </form>
+
+    {# Botão Novo Projeto #}
+    <a href="{% url 'projects:create' %}"
+       class="inline-flex items-center gap-2 text-white text-sm font-semibold
+              px-4 py-2.5 rounded-lg transition-opacity hover:opacity-90 duration-150
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              dark:focus:ring-offset-zinc-950 whitespace-nowrap flex-shrink-0"
+       style="background: linear-gradient(135deg, #1460f0, #06b8f6);">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Novo Projeto
+    </a>
+
+  </div>
+
+  {# ===== TAGS DE FILTROS ATIVOS ===== #}
+  {% if request.GET.q or request.GET.client %}
+    <div class="flex items-center gap-2 flex-wrap mb-4">
+      <span class="text-sm text-slate-500 dark:text-zinc-400">Filtrando por:</span>
+
+      {% if request.GET.q %}
+        <span class="inline-flex items-center gap-1.5
+                     bg-blue-50 dark:bg-blue-500/10
+                     border border-blue-200 dark:border-blue-500/30
+                     text-blue-700 dark:text-blue-400
+                     text-sm font-medium px-3 py-1 rounded-full">
+          "{{ request.GET.q }}"
+          <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.client %}client={{ request.GET.client }}{% endif %}"
+             class="hover:opacity-70 transition-opacity ml-0.5"
+             aria-label="Remover filtro de busca">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </a>
+        </span>
+      {% endif %}
+
+      {% if request.GET.client %}
+        {% for client in clients %}
+          {% if client.pk|stringformat:"s" == request.GET.client %}
+            <span class="inline-flex items-center gap-1.5
+                         bg-blue-50 dark:bg-blue-500/10
+                         border border-blue-200 dark:border-blue-500/30
+                         text-blue-700 dark:text-blue-400
+                         text-sm font-medium px-3 py-1 rounded-full">
+              {{ client.name }}
+              <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}{% endif %}"
+                 class="hover:opacity-70 transition-opacity ml-0.5"
+                 aria-label="Remover filtro de cliente">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </a>
+            </span>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+    </div>
+  {% endif %}
+
+  {# ===== ESTADO VAZIO ===== #}
+  {% if not projects %}
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800
+                px-8 py-16 text-center">
+      <div class="inline-flex items-center justify-center w-16 h-16
+                  bg-slate-100 dark:bg-zinc-800 rounded-full mb-4">
+        <svg class="w-8 h-8 text-slate-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+        </svg>
+      </div>
+
+      {% if request.GET.q or request.GET.status or request.GET.client %}
+        <h3 class="text-base font-semibold text-slate-700 dark:text-zinc-200 mb-1">
+          Nenhum projeto encontrado
+        </h3>
+        <p class="text-sm text-slate-500 dark:text-zinc-400 mb-6">
+          Nenhum projeto corresponde aos filtros aplicados.
+        </p>
+        <a href="{% url 'projects:list' %}"
+           class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:opacity-80 transition-opacity">
+          Limpar todos os filtros
+        </a>
+      {% else %}
+        <h3 class="text-base font-semibold text-slate-700 dark:text-zinc-200 mb-1">
+          Nenhum projeto cadastrado
+        </h3>
+        <p class="text-sm text-slate-500 dark:text-zinc-400 mb-6">
+          Crie seu primeiro projeto para começar a rastrear entregas e faturar clientes.
+        </p>
+        <a href="{% url 'projects:create' %}"
+           class="inline-flex items-center gap-2 text-white text-sm font-semibold
+                  px-5 py-2.5 rounded-lg transition-opacity hover:opacity-90"
+           style="background: linear-gradient(135deg, #1460f0, #06b8f6);">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Criar primeiro projeto
+        </a>
+      {% endif %}
+    </div>
+
+  {% else %}
+
+    {# ===== TABELA DE PROJETOS ===== #}
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+
+      {# Cabeçalho com contador #}
+      <div class="px-6 py-3.5 border-b border-slate-100 dark:border-zinc-800">
+        <span class="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
+          {{ projects|length }} projeto{% if projects|length != 1 %}s{% endif %}
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-zinc-800/60 border-b border-slate-100 dark:border-zinc-800">
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Nome</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Cliente</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Status</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Valor</th>
+              <th class="text-left text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Prazo</th>
+              <th class="text-right text-xs font-semibold text-slate-500 dark:text-zinc-400
+                         uppercase tracking-wider px-6 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-zinc-800">
+
+            {% for project in projects %}
+              <tr class="hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors
+                         {% if project.status == 'cancelled' %}opacity-60{% endif %}">
+
+                {# Nome do projeto #}
+                <td class="px-6 py-4">
+                  <a href="{% url 'projects:detail' project.pk %}"
+                     class="font-medium text-slate-800 dark:text-zinc-100
+                            hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {{ project.name }}
+                  </a>
+                </td>
+
+                {# Cliente #}
+                <td class="px-6 py-4 text-slate-500 dark:text-zinc-400">
+                  {% if project.client %}
+                    <a href="{% url 'clients:detail' project.client.pk %}"
+                       class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      {{ project.client.name }}
+                    </a>
+                  {% else %}
+                    <span class="text-slate-300 dark:text-zinc-600">—</span>
+                  {% endif %}
+                </td>
+
+                {# Badge de status #}
+                <td class="px-6 py-4">
+                  {% if project.status == 'draft' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-zinc-100 dark:bg-zinc-800
+                                 text-zinc-600 dark:text-zinc-400
+                                 border border-zinc-200 dark:border-zinc-700
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500"></span>
+                      {{ project.get_status_display }}
+                    </span>
+                  {% elif project.status == 'active' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-emerald-50 dark:bg-emerald-500/10
+                                 text-emerald-700 dark:text-emerald-400
+                                 border border-emerald-200 dark:border-emerald-500/30
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
+                      {{ project.get_status_display }}
+                    </span>
+                  {% elif project.status == 'paused' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-amber-50 dark:bg-amber-500/10
+                                 text-amber-700 dark:text-amber-400
+                                 border border-amber-200 dark:border-amber-500/30
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400"></span>
+                      {{ project.get_status_display }}
+                    </span>
+                  {% elif project.status == 'completed' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-blue-50 dark:bg-blue-500/10
+                                 text-blue-700 dark:text-blue-400
+                                 border border-blue-200 dark:border-blue-500/30
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400"></span>
+                      {{ project.get_status_display }}
+                    </span>
+                  {% elif project.status == 'cancelled' %}
+                    <span class="inline-flex items-center gap-1.5
+                                 bg-red-50 dark:bg-red-500/10
+                                 text-red-600 dark:text-red-400
+                                 border border-red-200 dark:border-red-500/30
+                                 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400"></span>
+                      {{ project.get_status_display }}
+                    </span>
+                  {% else %}
+                    <span class="text-slate-500 dark:text-zinc-400 text-xs">{{ project.get_status_display }}</span>
+                  {% endif %}
+                </td>
+
+                {# Valor #}
+                <td class="px-6 py-4">
+                  {% if project.rate %}
+                    <span class="text-slate-800 dark:text-zinc-100 font-medium">
+                      R$ {{ project.rate|floatformat:2 }}
+                    </span>
+                    <span class="text-slate-400 dark:text-zinc-500 text-xs">
+                      — {{ project.get_rate_type_display }}
+                    </span>
+                  {% else %}
+                    <span class="text-slate-300 dark:text-zinc-600">—</span>
+                  {% endif %}
+                </td>
+
+                {# Prazo — vermelho com ícone de alerta se vencido #}
+                <td class="px-6 py-4">
+                  {% if project.deadline %}
+                    {% if project.is_overdue %}
+                      <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-medium text-sm">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                        {{ project.deadline|date:"d/m/Y" }}
+                      </span>
+                    {% else %}
+                      <span class="text-slate-600 dark:text-zinc-300">
+                        {{ project.deadline|date:"d/m/Y" }}
+                      </span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-slate-300 dark:text-zinc-600">—</span>
+                  {% endif %}
+                </td>
+
+                {# Ações #}
+                <td class="px-6 py-4">
+                  <div class="flex items-center justify-end gap-1">
+
+                    {# Ver detalhe #}
+                    <a href="{% url 'projects:detail' project.pk %}"
+                       title="Ver detalhes"
+                       class="p-1.5 text-slate-400 dark:text-zinc-500
+                              hover:text-blue-600 dark:hover:text-blue-400
+                              hover:bg-blue-50 dark:hover:bg-blue-500/10
+                              rounded-md transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7
+                             -1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                    </a>
+
+                    {# Editar #}
+                    <a href="{% url 'projects:update' project.pk %}"
+                       title="Editar projeto"
+                       class="p-1.5 text-slate-400 dark:text-zinc-500
+                              hover:text-amber-600 dark:hover:text-amber-400
+                              hover:bg-amber-50 dark:hover:bg-amber-500/10
+                              rounded-md transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                             m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
+                    </a>
+
+                    {# Arquivar — apenas se status != cancelled #}
+                    {% if project.status != 'cancelled' %}
+                      <form method="post"
+                            action="{% url 'projects:archive' project.pk %}"
+                            class="inline"
+                            onsubmit="return confirm('Arquivar o projeto \'{{ project.name }}\'?\nEsta ação não pode ser desfeita.')">
+                        {% csrf_token %}
+                        <button type="submit"
+                                title="Arquivar projeto"
+                                class="p-1.5 text-slate-400 dark:text-zinc-500
+                                       hover:text-red-600 dark:hover:text-red-400
+                                       hover:bg-red-50 dark:hover:bg-red-500/10
+                                       rounded-md transition-colors">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8
+                                 a2 2 0 002-2l1-12M10 12l2 2 2-2"/>
+                          </svg>
+                        </button>
+                      </form>
+                    {% endif %}
+
+                  </div>
+                </td>
+
+              </tr>
+            {% endfor %}
+
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    {# ===== PAGINAÇÃO ===== #}
+    {% if page_obj.has_other_pages %}
+      <div class="flex items-center justify-between mt-5">
+
+        <span class="text-sm text-slate-500 dark:text-zinc-400">
+          Página {{ page_obj.number }} de {{ paginator.num_pages }}
+        </span>
+
+        <div class="flex items-center gap-1">
+
+          {# Botão Anterior #}
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.client %}&client={{ request.GET.client }}{% endif %}"
+               class="inline-flex items-center justify-center w-8 h-8 text-sm
+                      text-slate-600 dark:text-zinc-300
+                      bg-white dark:bg-zinc-900
+                      border border-slate-300 dark:border-zinc-700
+                      rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800
+                      transition-colors"
+               aria-label="Página anterior">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </a>
+          {% else %}
+            <span class="inline-flex items-center justify-center w-8 h-8
+                         text-slate-300 dark:text-zinc-600
+                         bg-white dark:bg-zinc-900
+                         border border-slate-200 dark:border-zinc-800
+                         rounded-lg cursor-not-allowed">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </span>
+          {% endif %}
+
+          {# Números de página — exibe janela de ±2 em torno da página atual #}
+          {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="inline-flex items-center justify-center w-8 h-8 text-sm font-semibold
+                           text-white rounded-lg"
+                    style="background: #1460f0;">
+                {{ num }}
+              </span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <a href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.client %}&client={{ request.GET.client }}{% endif %}"
+                 class="inline-flex items-center justify-center w-8 h-8 text-sm
+                        text-slate-600 dark:text-zinc-300
+                        bg-white dark:bg-zinc-900
+                        border border-slate-300 dark:border-zinc-700
+                        rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800
+                        transition-colors">
+                {{ num }}
+              </a>
+            {% endif %}
+          {% endfor %}
+
+          {# Botão Próximo #}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.client %}&client={{ request.GET.client }}{% endif %}"
+               class="inline-flex items-center justify-center w-8 h-8 text-sm
+                      text-slate-600 dark:text-zinc-300
+                      bg-white dark:bg-zinc-900
+                      border border-slate-300 dark:border-zinc-700
+                      rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800
+                      transition-colors"
+               aria-label="Próxima página">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </a>
+          {% else %}
+            <span class="inline-flex items-center justify-center w-8 h-8
+                         text-slate-300 dark:text-zinc-600
+                         bg-white dark:bg-zinc-900
+                         border border-slate-200 dark:border-zinc-800
+                         rounded-lg cursor-not-allowed">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </span>
+          {% endif %}
+
+        </div>
+      </div>
+    {% endif %}
+
+  {% endif %}
+
+{% endblock %}
