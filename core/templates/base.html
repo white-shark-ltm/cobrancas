@@ -5,6 +5,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}ElevenTech{% endblock %}</title>
+  {# ── Tema: aplica antes de QUALQUER render para evitar flash branco (FOUC) ── #}
+  {# Precisa vir o mais cedo possível no <head>, antes do Tailwind e do conteúdo. #}
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('et-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (saved === 'dark' || (!saved && prefersDark)) {
+          document.documentElement.classList.replace('light', 'dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -60,7 +73,7 @@
     {# Navegação principal #}
     <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
 
-      <a href="#"
+      <a href="{% url 'billing:list' %}"
          class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -90,7 +103,7 @@
         <span>Projetos</span>
       </a>
 
-      <a href="#"
+      <a href="{% url 'billing:list' %}"
          class="sidebar-link {% if 'billing' in request.resolver_match.app_names %}active{% endif %}">
         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -207,16 +220,8 @@
 
 </div>{# fim flex wrapper #}
 
-{# ── Tema: lê localStorage e aplica antes do primeiro render ── #}
+{# ── Toggle do tema (a aplicação inicial fica no <head> para evitar flash) ── #}
 <script>
-  (function() {
-    var saved = localStorage.getItem('et-theme');
-    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (saved === 'dark' || (!saved && prefersDark)) {
-      document.documentElement.classList.replace('light', 'dark');
-    }
-  })();
-
   function toggleTheme() {
     var html = document.documentElement;
     if (html.classList.contains('dark')) {

@@ -22,6 +22,16 @@ class InvoiceStatus(models.TextChoices):
     CANCELLED = 'cancelled', 'Cancelada'
 
 
+class InvalidInvoiceTransition(Exception):
+    """
+    Transição de status recusada pela regra de negócio.
+
+    Exceção de domínio: representa a violação de uma invariante do ciclo de
+    vida da fatura, independente da camada que tentou a transição (view, admin,
+    API, shell). Quem chama deve traduzi-la para o canal apropriado.
+    """
+
+
 class Invoice(TenantModel):
     """Fatura emitida para um cliente. Isolada por tenant."""
 
@@ -29,26 +39,42 @@ class Invoice(TenantModel):
         'projects.Project',
         on_delete=models.PROTECT,
         related_name='invoices',
+        verbose_name='Projeto',
     )
     client = models.ForeignKey(
         'clients.Client',
         on_delete=models.PROTECT,
         related_name='invoices',
+        verbose_name='Cliente',
     )
-    number = models.CharField(max_length=20)
+    number = models.CharField(max_length=20, verbose_name='Número')
     status = models.CharField(
         max_length=20,
         choices=InvoiceStatus.choices,
         default=InvoiceStatus.DRAFT,
     )
-    issue_date = models.DateField(default=date.today)
-    due_date = models.DateField()
-    notes = models.TextField(blank=True)
+    issue_date = models.DateField(default=date.today, verbose_name='Data de Emissão')
+    due_date = models.DateField(verbose_name='Vencimento')
+    notes = models.TextField(blank=True, verbose_name='Observações')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Máquina de estados do ciclo de vida da fatura.
+    # Fonte única de verdade sobre quais transições são legais — toda mudança
+    # de status passa por aqui, garantindo a invariante em qualquer chamador.
+    ALLOWED_TRANSITIONS = {
+        InvoiceStatus.DRAFT:     {InvoiceStatus.SENT, InvoiceStatus.CANCELLED},
+        InvoiceStatus.SENT:      {InvoiceStatus.PAID, InvoiceStatus.OVERDUE, InvoiceStatus.CANCELLED},
+        InvoiceStatus.OVERDUE:   {InvoiceStatus.PAID, InvoiceStatus.CANCELLED},
+        InvoiceStatus.PAID:      set(),   # estado terminal
+        InvoiceStatus.CANCELLED: set(),   # estado terminal
+    }
+
     class Meta:
-        ordering = ['-issue_date']
+        # '-id' como desempate garante ordem total e estável na paginação:
+        # sem ele, faturas de mesma data têm ordem indefinida e podem repetir
+        # ou sumir entre páginas.
+        ordering = ['-issue_date', '-id']
         unique_together = [['tenant', 'number']]
         verbose_name = 'Fatura'
         verbose_name_plural = 'Faturas'
@@ -61,17 +87,46 @@ class Invoice(TenantModel):
         return sum(item.total for item in self.items.all()) or Decimal('0.00')
 
     @property
-    def is_overdue(self):
+    def is_past_due(self):
+        """
+        Predicado de DATA: a fatura passou do vencimento sem ter sido quitada
+        ou cancelada. É o gatilho que promove a fatura ao estado 'Vencida' —
+        não é o estado em si. O estado de ciclo de vida é sempre `status`.
+        """
         terminal = {InvoiceStatus.PAID, InvoiceStatus.CANCELLED}
         return self.due_date < date.today() and self.status not in terminal
 
+    def can_transition_to(self, new_status):
+        """Indica se a transição para `new_status` é permitida a partir do estado atual."""
+        return new_status in self.ALLOWED_TRANSITIONS.get(self.status, set())
+
+    def _transition_to(self, new_status):
+        """
+        Aplica uma transição de status validando a máquina de estados.
+
+        Levanta InvalidInvoiceTransition se a transição for ilegal. Persiste
+        apenas os campos afetados para evitar sobrescrever escritas concorrentes.
+        """
+        if not self.can_transition_to(new_status):
+            raise InvalidInvoiceTransition(
+                f"Não é possível mudar a fatura de "
+                f"'{self.get_status_display()}' para "
+                f"'{InvoiceStatus(new_status).label}'."
+            )
+        self.status = new_status
+        self.save(update_fields=['status', 'updated_at'])
+
     def mark_as_sent(self):
-        self.status = InvoiceStatus.SENT
-        self.save()
+        self._transition_to(InvoiceStatus.SENT)
 
     def mark_as_paid(self):
-        self.status = InvoiceStatus.PAID
-        self.save()
+        self._transition_to(InvoiceStatus.PAID)
+
+    def mark_as_overdue(self):
+        self._transition_to(InvoiceStatus.OVERDUE)
+
+    def cancel(self):
+        self._transition_to(InvoiceStatus.CANCELLED)
 
 
 class InvoiceItem(TenantModel):

@@ -1,0 +1,303 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fatura #{{ invoice.number }} — ElevenTech</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      @page {
+        margin: 1.5cm;
+      }
+    }
+  </style>
+</head>
+<body class="bg-white text-slate-900 font-sans">
+
+  <div class="max-w-3xl mx-auto p-8">
+
+    {# ===== BOTÃO IMPRIMIR (oculto na impressão) ===== #}
+    <div class="no-print flex justify-end mb-6">
+      <button onclick="window.print()"
+              class="inline-flex items-center gap-2 text-white text-sm font-semibold
+                     px-5 py-2.5 rounded-lg transition-opacity hover:opacity-90"
+              style="background: linear-gradient(135deg, #1460f0, #06b8f6);">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2
+               m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5
+               a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+        </svg>
+        Imprimir / Salvar PDF
+      </button>
+    </div>
+
+    {# ===== CABEÇALHO DA FATURA ===== #}
+    <div class="flex items-start justify-between mb-8 pb-6 border-b-2 border-slate-900">
+
+      {# Dados do emissor (freelancer / tenant) #}
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-2xl font-bold tracking-tight text-slate-900">
+            ELEVEN<span style="color: #1460f0;">TECH</span>
+          </span>
+        </div>
+        <p class="text-base font-semibold text-slate-800">
+          {{ invoice.tenant.name }}
+        </p>
+        {% if invoice.tenant.document %}
+          <p class="text-sm text-slate-500 mt-0.5">{{ invoice.tenant.document }}</p>
+        {% endif %}
+        {% if invoice.tenant.email %}
+          <p class="text-sm text-slate-500">{{ invoice.tenant.email }}</p>
+        {% endif %}
+        {% if invoice.tenant.phone %}
+          <p class="text-sm text-slate-500">{{ invoice.tenant.phone }}</p>
+        {% endif %}
+      </div>
+
+      {# Label FATURA em destaque #}
+      <div class="text-right">
+        <p class="text-4xl font-black tracking-tight text-slate-900 uppercase">
+          Fatura
+        </p>
+        <p class="text-xl font-mono font-bold mt-1" style="color: #1460f0;">
+          #{{ invoice.number }}
+        </p>
+        {# Badge de status #}
+        <div class="mt-2">
+          {% if invoice.status == 'paid' %}
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                         bg-emerald-100 text-emerald-800 border border-emerald-300">
+              {{ invoice.get_status_display }}
+            </span>
+          {% elif invoice.status == 'overdue' %}
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                         bg-red-100 text-red-800 border border-red-300">
+              {{ invoice.get_status_display }}
+            </span>
+          {% elif invoice.status == 'sent' %}
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                         bg-blue-100 text-blue-800 border border-blue-300">
+              {{ invoice.get_status_display }}
+            </span>
+          {% elif invoice.status == 'cancelled' %}
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                         bg-slate-100 text-slate-600 border border-slate-300 line-through">
+              {{ invoice.get_status_display }}
+            </span>
+          {% else %}
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                         bg-slate-100 text-slate-600 border border-slate-300">
+              {{ invoice.get_status_display }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {# ===== SEÇÃO: DESTINATÁRIO E METADADOS ===== #}
+    <div class="grid grid-cols-2 gap-8 mb-8">
+
+      {# Dados do cliente (destinatário) #}
+      <div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+          Faturar para
+        </p>
+        {% if invoice.client %}
+          <p class="text-base font-semibold text-slate-900">{{ invoice.client.name }}</p>
+          {% if invoice.client.email %}
+            <p class="text-sm text-slate-600 mt-0.5">{{ invoice.client.email }}</p>
+          {% endif %}
+          {% if invoice.client.phone %}
+            <p class="text-sm text-slate-600">{{ invoice.client.phone }}</p>
+          {% endif %}
+          {% if invoice.client.address %}
+            <p class="text-sm text-slate-600 mt-1 whitespace-pre-line">{{ invoice.client.address }}</p>
+          {% endif %}
+        {% else %}
+          <p class="text-sm text-slate-400 italic">Cliente não especificado</p>
+        {% endif %}
+      </div>
+
+      {# Metadados da fatura #}
+      <div class="text-right">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+          Detalhes
+        </p>
+        <table class="w-full text-sm">
+          <tbody>
+            <tr>
+              <td class="text-slate-500 py-0.5 pr-4">Número:</td>
+              <td class="text-slate-900 font-semibold font-mono py-0.5 text-right">#{{ invoice.number }}</td>
+            </tr>
+            <tr>
+              <td class="text-slate-500 py-0.5 pr-4">Emissão:</td>
+              <td class="text-slate-900 font-semibold py-0.5 text-right">{{ invoice.issue_date|date:"d/m/Y" }}</td>
+            </tr>
+            {% if invoice.due_date %}
+              <tr>
+                <td class="text-slate-500 py-0.5 pr-4">Vencimento:</td>
+                <td class="py-0.5 text-right font-semibold
+                           {% if invoice.is_past_due %}text-red-700{% else %}text-slate-900{% endif %}">
+                  {{ invoice.due_date|date:"d/m/Y" }}
+                </td>
+              </tr>
+            {% endif %}
+            {% if invoice.project %}
+              <tr>
+                <td class="text-slate-500 py-0.5 pr-4">Projeto:</td>
+                <td class="text-slate-900 font-semibold py-0.5 text-right">{{ invoice.project.name }}</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    {# ===== TABELA DE ITENS ===== #}
+    <div class="mb-6">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr style="background-color: #1460f0;">
+            <th class="text-left text-white text-xs font-bold uppercase tracking-wider px-4 py-3 rounded-tl-lg">
+              Descrição
+            </th>
+            <th class="text-right text-white text-xs font-bold uppercase tracking-wider px-4 py-3 w-20">
+              Qtd
+            </th>
+            <th class="text-right text-white text-xs font-bold uppercase tracking-wider px-4 py-3 w-32">
+              Valor Unit.
+            </th>
+            <th class="text-right text-white text-xs font-bold uppercase tracking-wider px-4 py-3 w-32 rounded-tr-lg">
+              Total
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+            <tr class="{% cycle 'bg-white' 'bg-slate-50' %} border-b border-slate-200">
+              <td class="px-4 py-3 text-slate-800">{{ item.description }}</td>
+              <td class="px-4 py-3 text-right text-slate-600 tabular-nums">{{ item.quantity|floatformat:2 }}</td>
+              <td class="px-4 py-3 text-right text-slate-600 tabular-nums">
+                R$ {{ item.unit_price|floatformat:2 }}
+              </td>
+              <td class="px-4 py-3 text-right font-semibold text-slate-900 tabular-nums">
+                R$ {{ item.total|floatformat:2 }}
+              </td>
+            </tr>
+          {% empty %}
+            <tr class="border-b border-slate-200">
+              <td colspan="4" class="px-4 py-6 text-center text-slate-400 italic">
+                Nenhum item nesta fatura.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# ===== RODAPÉ FINANCEIRO ===== #}
+    <div class="flex justify-end mb-8">
+      <div class="w-72">
+        <table class="w-full text-sm">
+          <tbody>
+            <tr class="border-b border-slate-200">
+              <td class="py-2 text-slate-600">Subtotal:</td>
+              <td class="py-2 text-right font-semibold text-slate-900 tabular-nums">
+                R$ {{ invoice.total|floatformat:2 }}
+              </td>
+            </tr>
+            {% if payments %}
+              <tr class="border-b border-slate-200">
+                <td class="py-2 text-emerald-700">Total pago:</td>
+                <td class="py-2 text-right font-semibold text-emerald-700 tabular-nums">
+                  — R$ {{ total_paid|floatformat:2 }}
+                </td>
+              </tr>
+            {% endif %}
+            <tr style="background-color: #1460f0;">
+              <td class="py-3 px-3 font-bold text-white text-base rounded-bl-lg">
+                Total:
+              </td>
+              <td class="py-3 px-3 text-right font-bold text-white text-base tabular-nums rounded-br-lg">
+                {% if payments %}
+                  R$ {{ balance|floatformat:2 }}
+                {% else %}
+                  R$ {{ invoice.total|floatformat:2 }}
+                {% endif %}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# ===== HISTÓRICO DE PAGAMENTOS (se houver) ===== #}
+    {% if payments %}
+      <div class="mb-8">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+          Pagamentos Registrados
+        </p>
+        <table class="w-full text-sm border-collapse border border-slate-200">
+          <thead>
+            <tr class="bg-slate-100 border-b border-slate-200">
+              <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2">Data</th>
+              <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2">Método</th>
+              <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2">Notas</th>
+              <th class="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in payments %}
+              <tr class="border-b border-slate-200">
+                <td class="px-4 py-2 text-slate-700">{{ payment.paid_at|date:"d/m/Y" }}</td>
+                <td class="px-4 py-2 text-slate-600">{{ payment.get_method_display|default:"—" }}</td>
+                <td class="px-4 py-2 text-slate-500">{{ payment.notes|default:"—" }}</td>
+                <td class="px-4 py-2 text-right font-semibold text-emerald-700 tabular-nums">
+                  R$ {{ payment.amount|floatformat:2 }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {# ===== OBSERVAÇÕES ===== #}
+    {% if invoice.notes %}
+      <div class="mb-8 p-4 bg-slate-50 rounded-lg border border-slate-200">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+          Observações
+        </p>
+        <p class="text-sm text-slate-600 whitespace-pre-line">{{ invoice.notes }}</p>
+      </div>
+    {% endif %}
+
+    {# ===== RODAPÉ DO DOCUMENTO ===== #}
+    <div class="pt-6 border-t border-slate-200 text-center">
+      <p class="text-xs text-slate-400">
+        Fatura gerada em ElevenTech — Gestão para Freelancers
+      </p>
+      {% if invoice.status == 'paid' %}
+        <p class="text-sm font-bold text-emerald-700 mt-1">
+          FATURA PAGA
+        </p>
+      {% endif %}
+    </div>
+
+  </div>{# fim max-w-3xl #}
+
+</body>
+</html>
